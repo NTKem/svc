@@ -17,9 +17,11 @@ class CreateChatTable extends Migration
             $table->id();
             $table->string('chat_uuid');
             $table->string('uuid_user','36');
+            $table->string('uuid_user_to','36');
             $table->text('message');
-            $table->integer('reply');
-            $table->smallInteger('seen');
+            $table->text('file')->nullable();
+            $table->integer('reply')->nullable();
+            $table->smallInteger('seen')->nullable();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
         });

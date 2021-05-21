@@ -1,7 +1,8 @@
 <?php
 namespace App;
-use Ratchet\MessageComponentInterface;
+ use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
+use App\Models\Chat as ModelChat;
 
 class Chat implements MessageComponentInterface {
     protected $clients;
@@ -12,8 +13,18 @@ class Chat implements MessageComponentInterface {
 
     public function onOpen(ConnectionInterface $conn) {
         // Store the new connection to send messages to later
-        $this->clients->attach($conn);
+        $querystring = $conn->httpRequest->getUri()->getQuery();
 
+        parse_str($querystring, $queryarray);
+
+        if(isset($queryarray['token']))
+        {
+            $conn->resourceId = $queryarray['token'];
+            $this->clients->attach($conn);
+            $data['type'] = 'update_user';
+            $data['uuid'] = $queryarray['token'];
+            $data['connect_id'] = $conn->resourceId;
+        }
         echo "New connection! ({$conn->resourceId})\n";
     }
 
@@ -22,11 +33,18 @@ class Chat implements MessageComponentInterface {
         echo sprintf('Connection %d sending message "%s" to %d other connection%s' . "\n"
             , $from->resourceId, $msg, $numRecv, $numRecv == 1 ? '' : 's');
 
-        foreach ($this->clients as $client) {
-            if ($from !== $client) {
-                // The sender is not the receiver, send to each client connected
-                $client->send($msg);
-            }
+        $data = json_decode($msg, true);
+
+        if($data['command'] == 'private')
+        {
+            $post = [
+                'chat_uuid'=>$data['command'],
+                'uuid_user' => $data['uuid_user'],
+                "uuid_user_to"=>$data['uuid_user_to'],
+                "message"=>$data['message'],
+                "seen"=>0
+            ];
+            $chat = ModelChat::create($post);
         }
     }
 
